@@ -4,17 +4,17 @@ const mongoose = require('mongoose'); // untuk koneksi dengan MongoDB Atlas
 const COMMUNITIES = [
   {
     _id: new mongoose.Types.ObjectId('667f1a2b3c5d4e6f78912345'),
-    name: 'Mangrove',
+    name: 'Tanam Mangrove',
     description: 'Komunitas untuk pelestarian mangrove.',
   },
   {
     _id: new mongoose.Types.ObjectId('667f1a2b3c5d4e6f78912346'),
-    name: 'Pantai',
+    name: 'Pantai Kita',
     description: 'Komunitas untuk kebersihan pantai.',
   },
   {
     _id: new mongoose.Types.ObjectId('667f1a2b3c5d4e6f78912347'),
-    name: 'Terumbu Karang',
+    name: 'Sahabat Terumbu',
     description: 'Komunitas untuk pelestarian terumbu karang.',
   },
 ];

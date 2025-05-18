@@ -34,7 +34,7 @@ const communitySchema = new mongoose.Schema({
     type: String,
     required: [true, 'Community name is required'],
     enum: {
-      values: ['Mangrove', 'Pantai', 'Terumbu Karang'],
+      values: ['Tanam Mangrove', 'Pantai Kita', 'Sahabat Terumbu'],
       message: 'Community name must be Mangrove, Pantai, or Terumbu Karang',
     },
   },

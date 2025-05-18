@@ -10,13 +10,23 @@ dotenv.config();
 
 // Buat aplikasi Express
 const app = express();
+app.use(express.json());
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
+// users
+const userRoutes = require('./routes/users');
+app.use('/api/users', userRoutes);
+
+// communities
+const communityRoutes = require('./routes/communities');
+app.use('/api/communities', communityRoutes);
+
 // Koneksi ke MongoDB
 connectDB();
+
 
 // Inisialisasi komunitas fixed jika belum ada
 const initializeCommunities = async () => {
@@ -24,7 +34,7 @@ const initializeCommunities = async () => {
     const count = await Community.countDocuments();
     if (count === 0) {
       await Community.insertMany(COMMUNITIES);
-      console.log('Fixed communities initialized: Mangrove, Pantai, Terumbu Karang');
+      console.log('Fixed communities initialized:', COMMUNITIES.map(c => c.name).join(', '));
     }
   } catch (error) {
     console.error('Error initializing communities:', error);
