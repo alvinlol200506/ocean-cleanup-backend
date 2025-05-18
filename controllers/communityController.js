@@ -53,7 +53,7 @@ const addLocation = async (req, res) => {
       name,
       latitude,
       longitude,
-      addedBy: userId,
+      addedBy: req.user,
     });
 
     await community.save();
