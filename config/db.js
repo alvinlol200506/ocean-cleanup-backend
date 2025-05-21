@@ -5,10 +5,13 @@ dotenv.config();
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost/ocean-cleanup-backend', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('MongoDB connected');
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
+    console.error('MongoDB connection error:', error.message);
     process.exit(1);
   }
 };

@@ -89,6 +89,41 @@ const logout = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const { namaLengkap, email, password } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const user = await User.findById(req.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (namaLengkap) user.namaLengkap = namaLengkap;
+    if (email) user.email = email;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        namaLengkap: user.namaLengkap,
+        email: user.email,
+        communityId: user.communityId,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Mendapatkan profil pengguna
 const getMe = async (req, res) => {
   try {
@@ -134,4 +169,4 @@ const joinCommunity = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, joinCommunity };
+module.exports = { register, login, logout, joinCommunity, updateProfile };

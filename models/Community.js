@@ -50,6 +50,7 @@ const communitySchema = new mongoose.Schema({
   ],
   locations: [
     {
+      _id: mongoose.Schema.Types.ObjectId, // Tambahkan _id
       tanggal: { type: String, required: true },
       lokasiJalan: { type: String, required: true },
       mission: { type: String, required: true },

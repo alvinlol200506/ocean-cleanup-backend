@@ -104,8 +104,8 @@ const joinVolunteer = async (req, res) => {
 
     const volunteer = {
       namaLengkap,
-      namaPantai: namaPantai.toLowerCase(),
-      tanggalKegiatan: tanggalKegiatan.toLowerCase(),
+      namaPantai,
+      tanggalKegiatan,
       userId: req.user,
     };
 
@@ -124,6 +124,28 @@ const joinVolunteer = async (req, res) => {
   }
 };
 
+const getVolunteers = async (req, res) => {
+  try {
+    const communityId = req.params.id;
+
+    if (!getCommunityById(communityId)) {
+      return res.status(400).json({ message: 'Invalid community ID' });
+    }
+
+    const community = await Community.findById(communityId).select('volunteers');
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    res.json({
+      message: 'Volunteers retrieved successfully',
+      volunteers: community.volunteers,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 const selectCommunity = async (req, res) => {
   try {
     const communities = await Community.find();
@@ -133,6 +155,45 @@ const selectCommunity = async (req, res) => {
     res.json({
       message: 'Please select a community',
       communities: communities.map(c => ({ id: c._id, name: c.name })),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const deleteLocation = async (req, res) => {
+  try {
+    const communityId = req.params.id;
+    const locationId = req.params.locationId;
+
+    if (!getCommunityById(communityId)) {
+      return res.status(400).json({ message: 'Invalid community ID' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Cari dan hapus lokasi berdasarkan index atau filter
+    const locationIndex = community.locations.findIndex(loc => 
+      loc._id ? loc._id.toString() === locationId : false
+    );
+    if (locationIndex === -1) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+
+    // Hapus lokasi dari array
+    const deletedLocation = community.locations.splice(locationIndex, 1)[0];
+    await community.save();
+
+    res.json({
+      message: 'Location deleted successfully',
+      deletedLocation,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -186,8 +247,8 @@ const issueCertificate = async (req, res) => {
     const nomorSertifikat = `CERT-${Date.now()}-${req.user.toString().slice(-6)}`;
 
     // Buat PDF sertifikat
-    const doc = new PDFDocument();
     const filePath = `certificates/${nomorSertifikat}.pdf`;
+    const doc = new PDFDocument();
     const writeStream = fs.createWriteStream(filePath);
     doc.pipe(writeStream);
 
@@ -208,7 +269,7 @@ const issueCertificate = async (req, res) => {
         certificate: {
           nomorSertifikat,
           nama: namaLengkap,
-          urlPDF: `http://localhost:5000/certificates/${nomorSertifikat}.pdf`,
+          pageUrl: `http://localhost:5000/certificates/${nomorSertifikat}.pdf`, // Ubah ke URL halaman
         },
       });
     });
@@ -217,4 +278,4 @@ const issueCertificate = async (req, res) => {
   }
 };
 
-module.exports = { getCommunities, getCommunityDetails, addLocation, selectCommunity, joinVolunteer, issueCertificate };
+module.exports = { getCommunities, getCommunityDetails, addLocation, selectCommunity, joinVolunteer, issueCertificate, getVolunteers, deleteLocation };
