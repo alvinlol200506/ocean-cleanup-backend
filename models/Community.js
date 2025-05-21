@@ -35,18 +35,37 @@ const communitySchema = new mongoose.Schema({
     required: [true, 'Community name is required'],
     enum: {
       values: ['Tanam Mangrove', 'Pantai Kita', 'Sahabat Terumbu'],
-      message: 'Community name must be Mangrove, Pantai, or Terumbu Karang',
+      message: 'Community name must be Tanam Mangrove, Pantai Kita, or Sahabat Terumbu',
     },
   },
   description: {
     type: String,
-    trim: true,
+    default: '',
   },
-  members: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  }],
-  locations: [locationSchema],
+  members: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  ],
+  locations: [
+    {
+      tanggal: { type: String, required: true },
+      lokasiJalan: { type: String, required: true },
+      mission: { type: String, required: true },
+      namaPantai: { type: String, required: true },
+      foto: { type: String, required: true },
+      addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    },
+  ],
+  volunteers: [
+    {
+      namaLengkap: { type: String, required: true },
+      namaPantai: { type: String, required: true },
+      tanggalKegiatan: { type: String, required: true },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

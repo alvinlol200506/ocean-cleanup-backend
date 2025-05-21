@@ -3,13 +3,10 @@ const router = express.Router();
 const communityController = require('../controllers/communityController');
 const auth = require('../middleware/auth');
 
-// Rute untuk mendapatkan daftar semua komunitas
+router.get('/select', communityController.selectCommunity);
 router.get('/', communityController.getCommunities);
-
-// Rute untuk mendapatkan detail komunitas berdasarkan ID
-router.get('/:id', communityController.getCommunityDetails);
-
-// Rute untuk menambahkan lokasi ke komunitas (memerlukan autentikasi)
 router.post('/:id/locations', auth, communityController.addLocation);
+router.post('/:id/join-volunteer', auth, communityController.joinVolunteer);
+router.post('/:id/issue-certificate', auth, communityController.issueCertificate);
 
 module.exports = router;
