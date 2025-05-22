@@ -146,6 +146,46 @@ const getVolunteers = async (req, res) => {
   }
 };
 
+const deleteVolunteer = async (req, res) => {
+  try {
+    const communityId = req.params.id;
+    const volunteerId = req.params.volunteerId;
+
+    if (!getCommunityById(communityId)) {
+      return res.status(400).json({ message: 'Invalid community ID' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const volunteerIndex = community.volunteers.findIndex(v => v._id.toString() === volunteerId);
+    if (volunteerIndex === -1) {
+      return res.status(404).json({ message: 'Volunteer not found' });
+    }
+
+    if (community.volunteers[volunteerIndex].userId.toString() !== req.user.toString()) {
+      return res.status(403).json({ message: 'Unauthorized to delete this volunteer' });
+    }
+
+    const deletedVolunteer = community.volunteers[volunteerIndex];
+    community.volunteers.splice(volunteerIndex, 1);
+    await community.save();
+
+    res.json({
+      message: 'Volunteer deleted successfully',
+      deletedVolunteer,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 const selectCommunity = async (req, res) => {
   try {
     const communities = await Community.find();
@@ -200,17 +240,7 @@ const deleteLocation = async (req, res) => {
   }
 };
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-const upload = multer({ storage }).single('foto');
-
-const issueCertificate = async (req, res) => {
+const verifyVolunteerForCertificate = async (req, res) => {
   try {
     const { namaLengkap, namaPantai, tanggalKegiatan } = req.body;
     const communityId = req.params.id;
@@ -232,50 +262,79 @@ const issueCertificate = async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Cek apakah volunteer sudah terdaftar
     const volunteer = community.volunteers.find(v =>
       v.namaLengkap === namaLengkap &&
-      v.namaPantai === namaPantai.toLowerCase() &&
-      v.tanggalKegiatan === tanggalKegiatan.toLowerCase() &&
+      v.namaPantai === namaPantai &&
+      v.tanggalKegiatan === tanggalKegiatan &&
       v.userId.toString() === req.user.toString()
     );
+
     if (!volunteer) {
       return res.status(404).json({ message: 'Volunteer not found or not registered' });
     }
 
-    // Generate nomor sertifikat unik
-    const nomorSertifikat = `CERT-${Date.now()}-${req.user.toString().slice(-6)}`;
-
-    // Buat PDF sertifikat
-    const filePath = `certificates/${nomorSertifikat}.pdf`;
-    const doc = new PDFDocument();
-    const writeStream = fs.createWriteStream(filePath);
-    doc.pipe(writeStream);
-
-    doc.fontSize(25).text('SERTIFIKAT PARTISIPASI', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(15).text(`Nomor Sertifikat: ${nomorSertifikat}`, { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(18).text(`Diberikan kepada: ${namaLengkap}`, { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(15).text(`Untuk partisipasi di ${namaPantai} pada ${tanggalKegiatan}`, { align: 'center' });
-    doc.moveDown(2);
-    doc.fontSize(12).text('Dikeluarkan oleh Ocean Cleanup Community', { align: 'center' });
-    doc.end();
-
-    writeStream.on('finish', () => {
-      res.status(201).json({
-        message: 'Certificate issued successfully',
-        certificate: {
-          nomorSertifikat,
-          nama: namaLengkap,
-          pageUrl: `http://localhost:5000/certificates/${nomorSertifikat}.pdf`, // Ubah ke URL halaman
-        },
-      });
+    res.json({
+      message: 'Volunteer verified, proceed to certificate page',
+      pageUrl: `/certificate?nama=${encodeURIComponent(namaLengkap)}&pantai=${encodeURIComponent(namaPantai)}&tanggal=${encodeURIComponent(tanggalKegiatan)}`,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-module.exports = { getCommunities, getCommunityDetails, addLocation, selectCommunity, joinVolunteer, issueCertificate, getVolunteers, deleteLocation };
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage }).single('foto');
+
+const getCertificate = async (req, res) => {
+  try {
+    const communityId = req.params.id;
+    const certificateId = req.params.certificateId;
+
+    if (!getCommunityById(communityId)) {
+      return res.status(400).json({ message: 'Invalid community ID' });
+    }
+
+    const community = await Community.findById(communityId);
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Pastikan certificates ada, jika tidak, inisialisasi sebagai array kosong
+    community.certificates = community.certificates || [];
+
+    const certificate = community.certificates.find(c => c.nomorSertifikat === certificateId);
+    if (!certificate) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+
+    if (certificate.userId.toString() !== req.user.toString()) {
+      return res.status(403).json({ message: 'Unauthorized to access this certificate' });
+    }
+
+    res.json({
+      message: 'Certificate retrieved successfully',
+      certificate: {
+        nomorSertifikat: certificate.nomorSertifikat,
+        nama: certificate.namaLengkap,
+        namaPantai: certificate.namaPantai,
+        tanggalKegiatan: certificate.tanggalKegiatan,
+        pageUrl: `/certificate/${certificate.nomorSertifikat}`,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { getCommunities, getCommunityDetails, addLocation, selectCommunity, joinVolunteer, verifyVolunteerForCertificate, getVolunteers, deleteLocation, getCertificate, deleteVolunteer };
